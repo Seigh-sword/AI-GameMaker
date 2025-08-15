@@ -1,71 +1,166 @@
-// script.js for AI GameMaker Frontend
-
 const backendURL = "https://057b86a0-5774-4427-8f3f-356a021d37a4-00-gi58ysiy5y5c.pike.replit.dev";
 
-const chatDiv = document.getElementById('chat');
-const inputBox = document.getElementById('inputBox');
-const sendBtn = document.getElementById('sendBtn');
-const editBtn = document.getElementById('editBtn');
-const runBtn = document.getElementById('runBtn');
-const preview = document.getElementById('preview');
-const editor = document.getElementById('editor');
-const warningBox = document.getElementById('warningBox');
-const nameBox = document.getElementById('nameBox');
+const loginScreen = document.getElementById("login-screen");
+const chatScreen = document.getElementById("chat-screen");
+const editorScreen = document.getElementById("editor-screen");
 
-let userName = 'Player';
-nameBox.onchange = () => { userName = nameBox.value || 'Player'; };
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const loginBtn = document.getElementById("login-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const welcomeUser = document.getElementById("welcome-user");
 
-const userId = Math.random().toString(36).substr(2,9);
+const chatHistory = document.getElementById("chat-history");
+const chatInput = document.getElementById("chat-input");
+const sendBtn = document.getElementById("send-btn");
 
-function addMessage(sender, msg) {
-  const p = document.createElement('p');
-  p.innerHTML = `<b>${sender}:</b> ${msg}`;
-  chatDiv.appendChild(p);
-  chatDiv.scrollTop = chatDiv.scrollHeight;
+const goToEditorBtn = document.getElementById("go-to-editor");
+const backToChatBtn = document.getElementById("back-to-chat");
+const codeEditor = document.getElementById("code-editor");
+const runCodeBtn = document.getElementById("run-code");
+const previewFrame = document.getElementById("preview");
+
+const darkModeToggle = document.getElementById("dark-mode-toggle");
+
+// Load saved user & messages
+let currentUser = localStorage.getItem("username") || "";
+let messages = JSON.parse(localStorage.getItem("messages") || "[]");
+
+if (currentUser) {
+  welcomeUser.textContent = `Welcome, ${currentUser}!`;
+  loginScreen.classList.remove("active");
+  chatScreen.classList.add("active");
+  renderMessages();
 }
 
-function showWarning(msg) {
-  warningBox.style.display = 'block';
-  warningBox.innerText = msg;
-  setTimeout(() => { warningBox.style.display = 'none'; }, 4000);
-}
-
-sendBtn.onclick = async () => {
-  const msg = inputBox.value.trim();
-  if (!msg) { showWarning('Please type something!'); return; }
-  addMessage(userName, msg);
-  inputBox.value = '';
-
-  try {
-    const response = await fetch(`${backendURL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, message: msg })
-    });
-    const data = await response.json();
-    addMessage('AI', data.reply);
-
-    if (msg.toLowerCase().includes('no')) {
-      const prompt = chatDiv.innerText.replace(new RegExp(`${userName}:|AI:`, 'g'), '').trim();
-      const genRes = await fetch(`${backendURL}/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const codeData = await genRes.json();
-      editor.value = codeData.code;
-      preview.srcdoc = codeData.code;
-    }
-  } catch (err) {
-    console.error(err);
-    showWarning('Error contacting backend — check it’s running.');
+// Login
+loginBtn.addEventListener("click", () => {
+  const user = usernameInput.value.trim();
+  if (user) {
+    currentUser = user;
+    localStorage.setItem("username", currentUser);
+    welcomeUser.textContent = `Welcome, ${currentUser}!`;
+    loginScreen.classList.remove("active");
+    chatScreen.classList.add("active");
+    renderMessages();
   }
-};
+});
 
-editBtn.onclick = () => {
-  editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
-};
+// Logout
+logoutBtn.addEventListener("click", () => {
+  localStorage.removeItem("username");
+  currentUser = "";
+  chatHistory.innerHTML = "";
+  messages = [];
+  localStorage.removeItem("messages");
+  chatScreen.classList.remove("active");
+  loginScreen.classList.add("active");
+});
 
-runBtn.onclick = () => {
-  preview.srcdoc = editor.value;
-};
+// Send Message
+sendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  addMessage(currentUser, text);
+  chatInput.value = "";
+
+  // Ask backend
+  addTypingMessage("AI");
+  fetch(`${backendURL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text })
+  })
+    .then(res => res.json())
+    .then(data => {
+      removeTypingMessage();
+      typeWriterMessage("AI", data.reply || "Hmm, I got nothing 🤔");
+    })
+    .catch(err => {
+      removeTypingMessage();
+      addMessage("AI", "⚠️ Error connecting to backend");
+    });
+}
+
+// Render Messages
+function renderMessages() {
+  chatHistory.innerHTML = "";
+  messages.forEach(msg => {
+    const div = document.createElement("div");
+    div.className = `message ${msg.user === currentUser ? "user" : "ai"}`;
+    div.textContent = `${msg.user}: ${msg.text}`;
+    chatHistory.appendChild(div);
+  });
+}
+
+// Add Message to History
+function addMessage(user, text) {
+  messages.push({ user, text });
+  localStorage.setItem("messages", JSON.stringify(messages));
+  renderMessages();
+}
+
+// Typing animation placeholder
+function addTypingMessage(user) {
+  const div = document.createElement("div");
+  div.id = "typing";
+  div.className = `message ai`;
+  div.textContent = `${user} is typing...`;
+  chatHistory.appendChild(div);
+}
+
+// Remove typing animation
+function removeTypingMessage() {
+  const typingDiv = document.getElementById("typing");
+  if (typingDiv) typingDiv.remove();
+}
+
+// Typewriter effect
+function typeWriterMessage(user, text) {
+  let i = 0;
+  const div = document.createElement("div");
+  div.className = `message ai`;
+  div.textContent = `${user}: `;
+  chatHistory.appendChild(div);
+
+  function typeChar() {
+    if (i < text.length) {
+      div.textContent += text.charAt(i);
+      i++;
+      setTimeout(typeChar, 30); // typing speed
+    }
+  }
+  typeChar();
+  messages.push({ user, text });
+  localStorage.setItem("messages", JSON.stringify(messages));
+}
+
+// Dark mode toggle
+darkModeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+});
+
+// Editor navigation
+goToEditorBtn.addEventListener("click", () => {
+  chatScreen.classList.remove("active");
+  editorScreen.classList.add("active");
+});
+
+backToChatBtn.addEventListener("click", () => {
+  editorScreen.classList.remove("active");
+  chatScreen.classList.add("active");
+});
+
+// Run code in editor
+runCodeBtn.addEventListener("click", () => {
+  const code = codeEditor.value;
+  previewFrame.srcdoc = code;
+});
