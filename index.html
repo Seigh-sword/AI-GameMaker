@@ -1,24 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI GameMaker</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>AI GameMaker</h1>
-  <input type="text" id="nameBox" placeholder="Enter your name...">
-  <div id="chat"></div>
-  <div id="warningBox"></div>
-  <input type="text" id="inputBox" placeholder="Type your game idea or chat...">
-  <div>
-    <button id="sendBtn">Send</button>
-    <button id="editBtn">Edit Code</button>
-    <button id="runBtn">Run Game</button>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen active">
+    <h1>AI GameMaker</h1>
+    <input type="text" id="username" placeholder="Enter your name" />
+    <input type="password" id="password" placeholder="Enter password" />
+    <button id="login-btn">Login</button>
   </div>
-  <iframe id="preview"></iframe>
-  <textarea id="editor"></textarea>
+
+  <!-- Chat Screen -->
+  <div id="chat-screen" class="screen">
+    <header>
+      <span id="welcome-user"></span>
+      <button id="dark-mode-toggle">🌙</button>
+      <button id="logout-btn">Logout</button>
+    </header>
+
+    <div id="chat-history"></div>
+
+    <div id="chat-input-container">
+      <textarea id="chat-input" placeholder="Type your message..."></textarea>
+      <button id="send-btn">Send</button>
+    </div>
+
+    <button id="go-to-editor">Go to Editor</button>
+  </div>
+
+  <!-- Editor Screen -->
+  <div id="editor-screen" class="screen">
+    <header>
+      <button id="back-to-chat">⬅ Back</button>
+      <h2>Code Editor</h2>
+    </header>
+    <textarea id="code-editor" placeholder="Write your HTML/CSS/JS here..."></textarea>
+    <button id="run-code">Run</button>
+    <iframe id="preview" sandbox="allow-scripts allow-same-origin"></iframe>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
